@@ -24,9 +24,11 @@ public class PlamController {
     @Autowired
     PersonService personService;
 
-    @ApiOperation(value = "录入", hidden = true)
+    @ApiOperation(value = "测试用录入")
     @GetMapping("/enroll")
     public void enroll(String path) {
+/*        // 测试用代码
+        path="C:\\Users\\chiu\\Desktop\\plamPass\\Demo\\Data\\12_3310.dat";*/
         personService.enroll(path);
     }
 

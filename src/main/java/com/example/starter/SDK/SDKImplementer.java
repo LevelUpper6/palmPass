@@ -1,6 +1,7 @@
-package com.example.starter.config;
+package com.example.starter.SDK;
 
 import cn.hutool.core.codec.Base64Decoder;
+import cn.hutool.core.codec.Base64Encoder;
 import com.fujitsu.frontech.palmsecure.*;
 import com.fujitsu.frontech.palmsecure.util.PalmSecureConstant;
 import com.fujitsu.frontech.palmsecure.util.PalmSecureException;
@@ -29,10 +30,11 @@ import java.util.stream.Stream;
  * @author : bingrun.chiu
  * @description: sdk工具类
  * @date: 2020/1/9 9:39
+ * capture获取的数据只能用于验证,enroll获取的数据只能用于注册.
  **/
 @Slf4j
 @Component
-public class SdkTools {
+public class SDKImplementer {
     public static final int PS_GEXTENDED_DATA_TYPE = 2;
     private static int PS_REGISTER_MAX = 5000; // 实际使用的都是 1000
     private boolean isIdentifyEnable = true; // 实际使用的都是 false
@@ -49,13 +51,8 @@ public class SdkTools {
     private JAVA_uint32 ModuleHandle = new JAVA_uint32();
 
     //==================================================================================================================
-    // 初始化时调用此方法:
-    public boolean initialize() {
-        return Ps_Sample_Apl_Java();
-    }
 
     // 结束时调用此方法:
-/*
     public void terminal() {
         long ret = PalmSecureConstant.JAVA_BioAPI_FALSE;
         byte[] ModuleGuid = new byte[]{
@@ -79,9 +76,9 @@ public class SdkTools {
             e.printStackTrace();
         }
     }
-*/
 
-    private boolean Ps_Sample_Apl_Java() {
+    // 初始化时调用此方法:
+    public boolean Ps_Sample_Apl_Java() {
 
         File checkFile;
 
@@ -309,7 +306,6 @@ public class SdkTools {
         }
         //Get library information
         ///////////////////////////////////////////////////////////////////////////
-        System.out.println("到这里了,309");
         try {
             ret = palmsecureIf.JAVA_PvAPI_GetLibraryInfo(lbInfo);
             if (ret != PalmSecureConstant.JAVA_BioAPI_OK) {
@@ -413,27 +409,6 @@ public class SdkTools {
         Population.BIRArray = BIRAryPopu;
         ///////////////////////////////////////////////////////////////////////////
         stResult.result = palmsecureIf.JAVA_PvAPI_PresetIdentifyPopulation(ModuleHandle, Population);
-        log.info("JAVA_PvAPI_PresetIdentifyPopulation: {}", stResult);
-        ///////////////////////////////////////////////////////////////////////////
-/*        // Capture采集方法:
-        JAVA_sint32 captureBir  = new JAVA_sint32();
-        JAVA_uint8 purpose = new JAVA_uint8();
-        purpose.value = PalmSecureConstant.JAVA_BioAPI_PURPOSE_VERIFY;
-        // 采集开始, 放手
-        var re = palmsecureIf.JAVA_BioAPI_Capture(ModuleHandle,purpose,captureBir,timeout,null);
-        try {
-            stResult.result = palmsecureIf.JAVA_BioAPI_GetBIRFromHandle(
-                    ModuleHandle,
-                    captureBir,
-                    storedTemplate.BIR);
-        } catch(PalmSecureException e) {
-//            PsMessageDialog.Ps_Sample_Apl_Java_ShowErrorDialog(this.frame, e);
-            stResult.result = PalmSecureConstant.JAVA_BioAPI_ERRCODE_FUNCTION_FAILED;
-//            break;
-        }
-        // 采集结束:
-        System.out.println("....." + "re = " + Base64Encoder.encode(PalmSecureHelper.convertBIRToByte(storedTemplate.BIR)));*/
-        ///////////////////////////////////////////////////////////////////////////
         stResult.result = palmsecureIf.JAVA_BioAPI_IdentifyMatch(
                 ModuleHandle,
                 null,
@@ -447,30 +422,27 @@ public class SdkTools {
                 candidates,
                 timeout);
         if (stResult.result != PalmSecureConstant.JAVA_BioAPI_OK) {
-            log.info("stResult : {} ", stResult);
+            log.info("匹配失败: {} ", stResult.errInfo);
         }
-        log.info("numberOfResults : {} ", numberOfResults.value);
-        // 解析结果: 匹配的结果是否不为0
+        var nor = numberOfResults.value;
+        log.info("匹配到{}个结果",nor);
+        //------------------------------------------------------------------------------------
+        // 解析结果: 匹配的结果个数是否不为0
         // 解析结果: 解析id
-        if (numberOfResults.value == 0) { // return numberOfResults.value >= 1;
-            return null;
-        }
-        if (numberOfResults.value >= 1) {
-            int index = 0;
-            for (int i = 0; i < numberOfResults.value; i++) {
+        if (nor >= 1) {
+            for (int i = 0; i < nor; i++) {
                 stResult.farAchieved.add(candidates[i].FARAchieved);
                 stResult.userId.add(idList.get((int) (candidates[i].BIRInArray)));
-                index = (int) (candidates[i].BIRInArray);
             }
-            long mathWork1 = candidates[0].FARAchieved;
-            if (candidates.length == 1) {
-                return idList.get(0);
+            if (nor == 1) {//warning: 疑似结果只有一个:
+                return idList.get((int) candidates[0].BIRInArray);
             }
-            long mathWork2 = candidates[1].FARAchieved;
-            if (mathWork1 >= mathWork2) {
-                return idList.get(index);
+            //warning: 疑似结果有多个,拿分数较高的那个. 个数可以在ini文件设置.
+            if (candidates[0].FARAchieved >= candidates[1].FARAchieved) {
+                return idList.get((int) candidates[0].BIRInArray);
+            } else {
+                return idList.get((int) candidates[1].BIRInArray);
             }
-            return idList.get(1);
         }
         return null;
     }

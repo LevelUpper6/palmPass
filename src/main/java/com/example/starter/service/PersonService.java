@@ -1,13 +1,11 @@
 package com.example.starter.service;
 
-import cn.hutool.core.codec.Base64;
+import cn.hutool.core.codec.Base64Encoder;
 import cn.hutool.core.io.FileUtil;
-import com.example.starter.config.SdkTools;
+import com.example.starter.SDK.SDKProxy;
 import com.example.starter.dao.PersonMapper;
 import com.example.starter.dto.PersonDTO;
 import com.example.starter.entity.Person;
-import com.fujitsu.frontech.palmsecure.util.PalmSecureException;
-import com.fujitsu.frontech.palmsecure_smpl.exception.PsAplException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.xml.bind.DatatypeConverter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author : bingrun.chiu
@@ -31,25 +26,16 @@ public class PersonService {
     @Autowired(required = false)
     PersonMapper personMapper;
     @Autowired
-    SdkTools sdkTools;
-
-    //    String dir = "C:\\Users\\chiu\\Desktop\\plamPass\\Demo\\Data\\";
+    SDKProxy sdkProxy;
     String dir = "/dat";
 
-    public String verify(PersonDTO personDTO) throws PalmSecureException, IOException {
-        List<String> idList = new ArrayList<>();
-        var suspects = personMapper.getAllVeinData().stream().map(item -> {
-            byte[] bytes = new byte[0];
-            try {
-                bytes = sdkTools.readFile(item);
-                var phoneNumber = StringUtils.split(item, "_")[1].replace("_", "").replace(".dat", "").trim();
-                idList.add(phoneNumber);
-            } catch (PsAplException e) {
-                e.printStackTrace();
-            }
-            return bytes;
-        }).map(Base64::encode).toArray(String[]::new);
-        return sdkTools.identifyMatch(personDTO.getVeinData(), suspects, idList);
+    public String verify(PersonDTO personDTO) {
+/*        // 测试用代码
+        var bytes = sdkProxy.readFile("C:\\Users\\chiu\\Desktop\\plamPass\\Demo\\CaptureData\\12_Capture_R.dat");
+        var str = Base64Encoder.encode(bytes);
+        personDTO.setVeinData(str);*/
+
+        return sdkProxy.identifyMatch(personDTO.getVeinData());
     }
 
     public void enroll(String absolutePath) {

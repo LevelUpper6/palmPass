@@ -9,6 +9,7 @@ spring:
   redis:
     host: localhost
     port: 6379
+    password: XFIuywSU98xjBVJ3kR4ThHDq1bop0Ndsa7CmMEe6Z5iWKc2zPlgAGtYOvnrLQfSR
   freemarker:
     template-loader-path: classpath:/templates
     cache: false
